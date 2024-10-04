@@ -17,6 +17,15 @@ export default class {
       iconEye.forEach((icon) => {
         icon.addEventListener("click", () => this.handleClickIconEye(icon));
       });
+    const iconDownload = document.querySelectorAll(
+      `div[data-testid="icon-download"]`
+    );
+    if (iconDownload)
+      iconDownload.forEach((icon) => {
+        icon.addEventListener("click", () =>
+          this.handleClickIconDownload(icon)
+        );
+      });
     new Logout({ document, localStorage, onNavigate });
   }
 
@@ -33,6 +42,11 @@ export default class {
         `<div style='text-align: center;' class="bill-proof-container"><img width=${imgWidth} src=${billUrl} alt="Bill" /></div>`
       );
     $("#modaleFile").modal("show");
+  };
+
+  handleClickIconDownload = (icon) => {
+    const billUrl = icon.getAttribute("data-bill-url");
+    window.open(billUrl, "_blank");
   };
 
   getBills = () => {

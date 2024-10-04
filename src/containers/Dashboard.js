@@ -94,6 +94,16 @@ export default class {
       $("#modaleFileAdmin1").modal("show");
   };
 
+  handleClickIconDownload = (e) => {
+    console.log("handleClickIconDownload");
+    debugger;
+    e.preventDefault();
+    const billUrl = $("#icon-download-d").attr("data-bill-url");
+    if (billUrl) {
+      window.open(billUrl, "_blank");
+    }
+  };
+
   handleEditTicket(e, bill, bills) {
     if (this.counter === undefined || this.id !== bill.id) this.counter = 0;
     if (this.id === undefined || this.id !== bill.id) this.id = bill.id;
@@ -115,6 +125,7 @@ export default class {
       this.counter++;
     }
     $("#icon-eye-d").off("click").click(this.handleClickIconEye);
+    $("#icon-download-d").off("click").click(this.handleClickIconDownload);
     $("#btn-accept-bill")
       .off("click")
       .click((e) => this.handleAcceptSubmit(e, bill));
