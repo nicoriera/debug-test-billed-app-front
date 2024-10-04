@@ -6,6 +6,7 @@ import LoginUI from "../views/LoginUI";
 import Login from "../containers/Login.js";
 import { ROUTES } from "../constants/routes";
 import { fireEvent, screen } from "@testing-library/dom";
+import { ROUTES_PATH } from "../constants/routes.js";
 
 describe("Given that I am a user on login page", () => {
   describe("When I do not fill fields and I click on employee button Login In", () => {
@@ -113,6 +114,110 @@ describe("Given that I am a user on login page", () => {
 
     test("It should renders Bills page", () => {
       expect(screen.getAllByText("Mes notes de frais")).toBeTruthy();
+    });
+  });
+
+  describe("When the API returns an error", () => {
+    test("Then it should call createUser and login", async () => {
+      document.body.innerHTML = LoginUI();
+      const inputData = {
+        type: "Employee",
+        email: "test@test.com",
+        password: "password123",
+        status: "connected",
+      };
+
+      const inputEmailUser = screen.getByTestId("employee-email-input");
+      fireEvent.change(inputEmailUser, { target: { value: inputData.email } });
+
+      const inputPasswordUser = screen.getByTestId("employee-password-input");
+      fireEvent.change(inputPasswordUser, {
+        target: { value: inputData.password },
+      });
+
+      const form = screen.getByTestId("form-employee");
+
+      // Mock localStorage
+      Object.defineProperty(window, "localStorage", {
+        value: {
+          getItem: jest.fn(() => null),
+          setItem: jest.fn(() => null),
+        },
+        writable: true,
+      });
+
+      // Mock navigation
+      const onNavigate = jest.fn();
+
+      // Mock store
+      const store = {
+        login: jest.fn().mockRejectedValueOnce(new Error("API Error")),
+        users: jest.fn().mockReturnValue({
+          create: jest.fn().mockResolvedValue({}),
+        }),
+      };
+
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate,
+        PREVIOUS_LOCATION: "",
+        store,
+      });
+
+      // Mock createUser
+      login.createUser = jest.fn().mockResolvedValue({});
+
+      // Submit the form
+      await fireEvent.submit(form);
+
+      expect(store.login).toHaveBeenCalled();
+      expect(login.createUser).toHaveBeenCalled();
+      expect(onNavigate).toHaveBeenCalledWith(ROUTES_PATH["Bills"]);
+    });
+  });
+
+  describe("When the store is not provided", () => {
+    test("Then login and createUser should return null", () => {
+      document.body.innerHTML = LoginUI();
+
+      const login = new Login({
+        document,
+        localStorage: window.localStorage,
+        onNavigate: jest.fn(),
+        PREVIOUS_LOCATION: "",
+        store: null,
+      });
+
+      expect(login.login({})).toBeNull();
+      expect(login.createUser({})).toBeNull();
+    });
+  });
+
+  describe("When I am on Employee page and I click on Admin button", () => {
+    test("Then it should render Admin form", () => {
+      document.body.innerHTML = LoginUI();
+
+      const adminLink = screen.getByTestId("admin-link");
+      fireEvent.click(adminLink);
+
+      expect(screen.getByTestId("form-admin")).toBeTruthy();
+      expect(screen.queryByTestId("form-employee")).toBeFalsy();
+    });
+  });
+
+  describe("When I am on Admin page and I click on Employee button", () => {
+    test("Then it should render Employee form", () => {
+      document.body.innerHTML = LoginUI();
+
+      const adminLink = screen.getByTestId("admin-link");
+      fireEvent.click(adminLink);
+
+      const employeeLink = screen.getByTestId("employee-link");
+      fireEvent.click(employeeLink);
+
+      expect(screen.getByTestId("form-employee")).toBeTruthy();
+      expect(screen.queryByTestId("form-admin")).toBeFalsy();
     });
   });
 });
