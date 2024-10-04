@@ -23,7 +23,11 @@ export default class Login {
       `form[data-testid="form-admin"]`
     );
     formAdmin.addEventListener("submit", this.handleSubmitAdmin);
+
+    // Ajouter une vérification de connexion au chargement
+    this.checkAuth();
   }
+
   handleSubmitEmployee = (e) => {
     e.preventDefault();
     const user = {
@@ -66,6 +70,19 @@ export default class Login {
         PREVIOUS_LOCATION = this.PREVIOUS_LOCATION;
         document.body.style.backgroundColor = "#fff";
       });
+  };
+
+  // Ajouter une méthode pour vérifier l'authentification
+  checkAuth = () => {
+    const user = JSON.parse(this.localStorage.getItem("user"));
+    const jwt = this.localStorage.getItem("jwt");
+    if (user && jwt) {
+      if (user.type === "Employee") {
+        this.onNavigate(ROUTES_PATH["Bills"]);
+      } else if (user.type === "Admin") {
+        this.onNavigate(ROUTES_PATH["Dashboard"]);
+      }
+    }
   };
 
   // not need to cover this function by tests
