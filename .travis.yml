@@ -1,0 +1,39 @@
+language: node_js
+node_js:
+  - "14"
+  - "16"
+  - "18"
+
+# Cache les dépendances pour accélérer les builds
+cache:
+  directories:
+    - node_modules
+
+# Installation des dépendances
+install:
+  - npm ci
+
+# Script pour exécuter les tests
+script:
+  - npm run test
+
+# Notifications (optionnel)
+notifications:
+  email:
+    recipients:
+      - votre-email@example.com
+    on_success: never
+    on_failure: always
+
+branches:
+  only:
+    - main
+
+before_install:
+ - npm update
+
+install:
+- npm install
+
+script:
+- npm run test

@@ -15,38 +15,60 @@ export default class Login {
     this.onNavigate = onNavigate;
     this.PREVIOUS_LOCATION = PREVIOUS_LOCATION;
     this.store = store;
-    const formEmployee = this.document.querySelector(
-      `form[data-testid="form-employee"]`
-    );
-    formEmployee.addEventListener("submit", this.handleSubmitEmployee);
-    const formAdmin = this.document.querySelector(
-      `form[data-testid="form-admin"]`
-    );
-    formAdmin.addEventListener("submit", this.handleSubmitAdmin);
+
+    // Utiliser setTimeout pour s'assurer que le DOM est chargé
+    setTimeout(() => this.addEventListeners(), 0);
 
     // Ajouter une vérification de connexion au chargement
     this.checkAuth();
   }
 
+  addEventListeners = () => {
+    const formEmployee = this.document.querySelector(
+      `form[data-testid="form-employee"]`
+    );
+    const formAdmin = this.document.querySelector(
+      `form[data-testid="form-admin"]`
+    );
+
+    if (formEmployee) {
+      formEmployee.addEventListener("submit", this.handleSubmitEmployee);
+    }
+    if (formAdmin) {
+      formAdmin.addEventListener("submit", this.handleSubmitAdmin);
+    }
+  };
+
   handleSubmitEmployee = (e) => {
     e.preventDefault();
     const user = {
       type: "Employee",
-      email: e.target.querySelector(`input[data-testid="employee-email-input"]`)
-        .value,
-      password: e.target.querySelector(
-        `input[data-testid="employee-password-input"]`
-      ).value,
+      email: e.target
+        .querySelector(`input[data-testid="employee-email-input"]`)
+        .value.trim(),
+      password: e.target
+        .querySelector(`input[data-testid="employee-password-input"]`)
+        .value.trim(),
       status: "connected",
     };
     this.localStorage.setItem("user", JSON.stringify(user));
-    this.login(user)
-      .catch((err) => this.createUser(user))
+    return this.login(user)
       .then(() => {
         this.onNavigate(ROUTES_PATH["Bills"]);
+
         this.PREVIOUS_LOCATION = ROUTES_PATH["Bills"];
         PREVIOUS_LOCATION = this.PREVIOUS_LOCATION;
         this.document.body.style.backgroundColor = "#fff";
+      })
+      .catch((err) => {
+        console.error("Login failed, attempting to create user:", err);
+        return this.createUser(user);
+      })
+      .then(() => {
+        console.log("User creation successful or not needed");
+      })
+      .catch((err) => {
+        console.error("User creation failed:", err);
       });
   };
 
@@ -62,7 +84,7 @@ export default class Login {
       status: "connected",
     };
     this.localStorage.setItem("user", JSON.stringify(user));
-    this.login(user)
+    return this.login(user)
       .catch((err) => this.createUser(user))
       .then(() => {
         this.onNavigate(ROUTES_PATH["Dashboard"]);
@@ -74,7 +96,9 @@ export default class Login {
 
   // Ajouter une méthode pour vérifier l'authentification
   checkAuth = () => {
-    const user = JSON.parse(this.localStorage.getItem("user"));
+    const userStr = this.localStorage.getItem("user");
+    if (!userStr) return; // Add check for undefined or null
+    const user = JSON.parse(userStr);
     const jwt = this.localStorage.getItem("jwt");
     if (user && jwt) {
       if (user.type === "Employee") {
@@ -96,10 +120,14 @@ export default class Login {
           })
         )
         .then(({ jwt }) => {
-          localStorage.setItem("jwt", jwt);
+          this.localStorage.setItem("jwt", jwt);
+        })
+        .catch((err) => {
+          console.error("Login failed:", err);
+          throw err;
         });
     } else {
-      return null;
+      return Promise.reject(new Error("Store is not initialized"));
     }
   };
 
@@ -121,7 +149,7 @@ export default class Login {
           return this.login(user);
         });
     } else {
-      return null;
+      return Promise.reject(new Error("Store is not initialized"));
     }
   };
 }

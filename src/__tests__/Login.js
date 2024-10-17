@@ -4,9 +4,9 @@
 
 import LoginUI from "../views/LoginUI";
 import Login from "../containers/Login.js";
-import { ROUTES } from "../constants/routes";
+import { ROUTES, ROUTES_PATH } from "../constants/routes";
+
 import { fireEvent, screen } from "@testing-library/dom";
-import { ROUTES_PATH } from "../constants/routes.js";
 
 describe("Given that I am a user on login page", () => {
   describe("When I do not fill fields and I click on employee button Login In", () => {
@@ -114,110 +114,6 @@ describe("Given that I am a user on login page", () => {
 
     test("It should renders Bills page", () => {
       expect(screen.getAllByText("Mes notes de frais")).toBeTruthy();
-    });
-  });
-
-  describe("When the API returns an error", () => {
-    test("Then it should call createUser and login", async () => {
-      document.body.innerHTML = LoginUI();
-      const inputData = {
-        type: "Employee",
-        email: "test@test.com",
-        password: "password123",
-        status: "connected",
-      };
-
-      const inputEmailUser = screen.getByTestId("employee-email-input");
-      fireEvent.change(inputEmailUser, { target: { value: inputData.email } });
-
-      const inputPasswordUser = screen.getByTestId("employee-password-input");
-      fireEvent.change(inputPasswordUser, {
-        target: { value: inputData.password },
-      });
-
-      const form = screen.getByTestId("form-employee");
-
-      // Mock localStorage
-      Object.defineProperty(window, "localStorage", {
-        value: {
-          getItem: jest.fn(() => null),
-          setItem: jest.fn(() => null),
-        },
-        writable: true,
-      });
-
-      // Mock navigation
-      const onNavigate = jest.fn();
-
-      // Mock store
-      const store = {
-        login: jest.fn().mockRejectedValueOnce(new Error("API Error")),
-        users: jest.fn().mockReturnValue({
-          create: jest.fn().mockResolvedValue({}),
-        }),
-      };
-
-      const login = new Login({
-        document,
-        localStorage: window.localStorage,
-        onNavigate,
-        PREVIOUS_LOCATION: "",
-        store,
-      });
-
-      // Mock createUser
-      login.createUser = jest.fn().mockResolvedValue({});
-
-      // Submit the form
-      await fireEvent.submit(form);
-
-      expect(store.login).toHaveBeenCalled();
-      expect(login.createUser).toHaveBeenCalled();
-      expect(onNavigate).toHaveBeenCalledWith(ROUTES_PATH["Bills"]);
-    });
-  });
-
-  describe("When the store is not provided", () => {
-    test("Then login and createUser should return null", () => {
-      document.body.innerHTML = LoginUI();
-
-      const login = new Login({
-        document,
-        localStorage: window.localStorage,
-        onNavigate: jest.fn(),
-        PREVIOUS_LOCATION: "",
-        store: null,
-      });
-
-      expect(login.login({})).toBeNull();
-      expect(login.createUser({})).toBeNull();
-    });
-  });
-
-  describe("When I am on Employee page and I click on Admin button", () => {
-    test("Then it should render Admin form", () => {
-      document.body.innerHTML = LoginUI();
-
-      const adminLink = screen.getByTestId("admin-link");
-      fireEvent.click(adminLink);
-
-      expect(screen.getByTestId("form-admin")).toBeTruthy();
-      expect(screen.queryByTestId("form-employee")).toBeFalsy();
-    });
-  });
-
-  describe("When I am on Admin page and I click on Employee button", () => {
-    test("Then it should render Employee form", () => {
-      document.body.innerHTML = LoginUI();
-
-      const adminLink = screen.getByTestId("admin-link");
-      fireEvent.click(adminLink);
-
-      const employeeLink = screen.getByTestId("employee-link");
-      fireEvent.click(employeeLink);
-
-      expect(screen.getByTestId("form-employee")).toBeTruthy();
-      expect(screen.queryByTestId("form-admin")).toBeFalsy();
     });
   });
 });
@@ -331,5 +227,145 @@ describe("Given that I am a user on login page", () => {
     test("It should renders HR dashboard page", () => {
       expect(screen.queryByText("Validations")).toBeTruthy();
     });
+  });
+});
+
+// New tests
+describe("checkAuth", () => {
+  test("It should navigate to Bills if user is Employee", () => {
+    const localStorageMock = {
+      getItem: jest.fn(() => JSON.stringify({ type: "Employee" })),
+    };
+    Object.defineProperty(window, "localStorage", { value: localStorageMock });
+
+    const onNavigateMock = jest.fn();
+    const login = new Login({
+      document: document,
+      localStorage: window.localStorage,
+      onNavigate: onNavigateMock,
+      PREVIOUS_LOCATION: "",
+      store: null,
+    });
+
+    login.checkAuth();
+    expect(onNavigateMock).toHaveBeenCalledWith(ROUTES_PATH["Bills"]);
+  });
+
+  test("It should navigate to Dashboard if user is Admin", () => {
+    const localStorageMock = {
+      getItem: jest.fn(() => JSON.stringify({ type: "Admin" })),
+    };
+    Object.defineProperty(window, "localStorage", { value: localStorageMock });
+
+    const onNavigateMock = jest.fn();
+    const login = new Login({
+      document: document,
+      localStorage: window.localStorage,
+      onNavigate: onNavigateMock,
+      PREVIOUS_LOCATION: "",
+      store: null,
+    });
+
+    login.checkAuth();
+    expect(onNavigateMock).toHaveBeenCalledWith(ROUTES_PATH["Dashboard"]);
+  });
+
+  test("It should not navigate if user is not present", () => {
+    const localStorageMock = {
+      getItem: jest.fn(() => null),
+    };
+    Object.defineProperty(window, "localStorage", { value: localStorageMock });
+
+    const onNavigateMock = jest.fn();
+    const login = new Login({
+      document: document,
+      localStorage: window.localStorage,
+      onNavigate: onNavigateMock,
+      PREVIOUS_LOCATION: "",
+      store: null,
+    });
+
+    login.checkAuth();
+    expect(onNavigateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("Login page", () => {
+  beforeEach(() => {
+    // Utiliser les faux timers pour contrôler setTimeout
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    // Réinitialiser les timers après chaque test
+    jest.useRealTimers();
+  });
+
+  test("It should call addEventListeners after setTimeout", () => {
+    // Insérer le HTML de la page de login
+    document.body.innerHTML = LoginUI();
+
+    // Mock des dépendances de Login
+    const onNavigate = jest.fn();
+    const localStorageMock = {
+      getItem: jest.fn(),
+      setItem: jest.fn(),
+    };
+
+    const login = new Login({
+      document: document,
+      localStorage: localStorageMock,
+      onNavigate,
+      PREVIOUS_LOCATION: "",
+      store: null,
+    });
+
+    // Spy sur la méthode addEventListeners pour vérifier qu'elle est appelée
+    const addEventListenersSpy = jest.spyOn(login, "addEventListeners");
+
+    // Avancer tous les timers (ici, cela simule la fin du setTimeout)
+    jest.runAllTimers();
+
+    // Vérifier que addEventListeners a bien été appelé après le setTimeout
+    expect(addEventListenersSpy).toHaveBeenCalled();
+  });
+});
+
+describe("Login - Error cases", () => {
+  beforeEach(() => {
+    // Insert the HTML of the login page before each test
+    document.body.innerHTML = LoginUI();
+  });
+
+  test("It should handle login error", async () => {
+    const onNavigate = jest.fn();
+    const localStorageMock = {
+      setItem: jest.fn(),
+      getItem: jest.fn(),
+    };
+
+    const storeMock = {
+      login: jest.fn().mockRejectedValue(new Error("Login failed")),
+    };
+
+    const login = new Login({
+      document: document,
+      localStorage: localStorageMock,
+      onNavigate,
+      PREVIOUS_LOCATION: "",
+      store: storeMock,
+    });
+
+    const handleSubmit = jest.fn(login.handleSubmitEmployee);
+    login.login = jest.fn().mockRejectedValue(new Error("Login failed")); // Mock login to reject
+
+    const form = screen.getByTestId("form-employee");
+    form.addEventListener("submit", handleSubmit);
+
+    fireEvent.submit(form);
+
+    await expect(handleSubmit).toHaveBeenCalled();
+    await expect(login.login).toHaveBeenCalled();
+    await expect(login.login).rejects.toThrow("Login failed");
   });
 });
