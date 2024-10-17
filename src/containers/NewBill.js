@@ -19,41 +19,31 @@ export default class NewBill {
     const file = this.document.querySelector(`input[data-testid="file"]`);
     file.addEventListener("change", this.handleChangeFile);
 
-    this.fileUrl = null;
-    this.fileName = null;
-    this.billId = null;
     new Logout({ document, localStorage, onNavigate });
   }
 
-  handleChangeFile = (e) => {
+  fileValidation = (file) => {
+    const fileTypes = ["image/jpeg", "image/jpg", "image/png"];
+    const fileInput = this.document.querySelector(`input[data-testid="file"]`);
+
+    if (!fileTypes.includes(file.type)) {
+      fileInput.classList.add("is-invalid");
+      return false;
+    }
+    fileInput.classList.remove("is-invalid");
+    return true;
+  };
+
+  handleChangeFile = async (e) => {
     e.preventDefault();
     const file = this.document.querySelector(`input[data-testid="file"]`)
       .files[0];
     const filePath = e.target.value.split(/\\/g);
     const fileName = filePath[filePath.length - 1];
 
-    const allowedExtensions = ["jpg", "jpeg", "png"];
-    const fileExtension = fileName.split(".").pop().toLowerCase();
-
-    // Supprimer l'ancien message d'erreur s'il existe
-    const oldErrorMessage = this.document.querySelector("#file-error-message");
-    if (oldErrorMessage) {
-      oldErrorMessage.remove();
-    }
-
-    if (!allowedExtensions.includes(fileExtension)) {
+    if (!this.fileValidation(file)) {
       console.error("Type de fichier non autorisé");
-      this.document.querySelector(`input[data-testid="file"]`).value = "";
-
-      // Ajouter un nouveau message d'erreur
-      const errorMessage = this.document.createElement("p");
-      errorMessage.id = "file-error-message"; // Ajouter un ID pour faciliter la suppression
-      errorMessage.textContent =
-        "Type de fichier non autorisé. Veuillez choisir une image (jpg, jpeg, png).";
-      errorMessage.style.color = "red";
-      this.document
-        .querySelector(`input[data-testid="file"]`)
-        .parentNode.appendChild(errorMessage);
+      e.target.value = "";
       return;
     }
 
@@ -62,29 +52,29 @@ export default class NewBill {
     formData.append("file", file);
     formData.append("email", email);
 
-    console.log("Calling store.bills().create");
-    this.store
-      .bills()
-      .create({
+    try {
+      const { fileUrl, key } = await this.store.bills().create({
         data: formData,
         headers: {
           noContentType: true,
         },
-      })
-      .then(({ fileUrl, key }) => {
-        console.log("File uploaded successfully:", fileUrl, key);
-        this.billId = key;
-        this.fileUrl = fileUrl;
-        this.fileName = fileName;
-      })
-      .catch((error) => {
-        console.error("Erreur lors du téléchargement du fichier :", error);
-        this.document.querySelector(`input[data-testid="file"]`).value = "";
       });
+      console.log("File uploaded successfully:", fileUrl, key);
+      this.billId = key;
+      this.fileUrl = fileUrl;
+      this.fileName = fileName;
+    } catch (error) {
+      console.error("Erreur lors du téléchargement du fichier :", error);
+      e.target.value = "";
+    }
   };
 
   handleSubmit = (e) => {
     e.preventDefault();
+    if (!this.fileName) {
+      console.error("Aucun fichier sélectionné");
+      return;
+    }
 
     // Validation basique des champs
     const requiredFields = [
@@ -113,9 +103,7 @@ export default class NewBill {
       ),
       date: e.target.querySelector(`input[data-testid="datepicker"]`).value,
       vat: e.target.querySelector(`input[data-testid="vat"]`).value,
-      pct:
-        parseInt(e.target.querySelector(`input[data-testid="pct"]`).value) ||
-        20,
+      pct: parseInt(e.target.querySelector(`input[data-testid="pct"]`).value),
       commentary: e.target.querySelector(`textarea[data-testid="commentary"]`)
         .value,
       fileUrl: this.fileUrl,
@@ -123,6 +111,7 @@ export default class NewBill {
       status: "pending",
     };
     this.updateBill(bill);
+    this.onNavigate(ROUTES_PATH["Bills"]);
   };
 
   updateBill = (bill) => {

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const mockedBills = {
   list() {
     return Promise.resolve([
@@ -68,25 +69,13 @@ const mockedBills = {
       },
     ]);
   },
-  create: jest.fn((bill) => {
+  create(bill) {
     return Promise.resolve({
-      id: "mock-id-" + Math.random().toString(36).substr(2, 9),
-      fileUrl:
-        "https://test.storage.tld/v0/b/billable-677b6.a…f-1.jpg?alt=media&token=c1640e12-a24b-4b11-ae52-529112e9602a",
-      key: "mock-key-" + Math.random().toString(36).substr(2, 9),
-      status: "pending",
-      type: bill.data.get("type") || "default-type",
-      name: bill.data.get("name") || "default-name",
-      amount: parseInt(bill.data.get("amount")) || 0,
-      date: bill.data.get("date") || new Date().toISOString().split("T")[0],
-      vat: bill.data.get("vat") || "",
-      pct: parseInt(bill.data.get("pct")) || 20,
-      commentary: bill.data.get("commentary") || "",
-      email: bill.data.get("email") || "default@email.com",
-      fileName: bill.data.get("file").name || "default-file.jpg",
+      fileUrl: "https://localhost:3456/images/test.jpg",
+      key: "1234",
     });
-  }),
-  update: jest.fn((bill) => {
+  },
+  update(bill) {
     return Promise.resolve({
       id: "47qAXb6fIm2zOKkLzMro",
       vat: "80",
@@ -103,7 +92,7 @@ const mockedBills = {
       email: "a@a",
       pct: 20,
     });
-  }),
+  },
 };
 
 export default {
