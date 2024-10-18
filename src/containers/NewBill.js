@@ -21,41 +21,41 @@ export default class NewBill {
     e.preventDefault();
     const file = this.document.querySelector(`input[data-testid="file"]`)
       .files[0];
-    const filePath = e.target.value.split(/\\/g);
-    const fileName = filePath[filePath.length - 1];
-
-    // Vérifier l'extension du fichier
-    const fileExtension = fileName.split(".").pop().toLowerCase();
-    const allowedExtensions = ["jpg", "jpeg", "png"];
-
-    if (!allowedExtensions.includes(fileExtension)) {
-      // Réinitialiser le champ de fichier
-      e.target.value = "";
-      // Afficher un message d'erreur à l'utilisateur
-      alert("Seuls les fichiers jpg, jpeg et png sont autorisés.");
-      return;
+    const fileName = file.name;
+    // new variables needed to check image format
+    const fileInput = this.document.querySelector(`input[data-testid="file"]`);
+    const fileAcceptedFormats = ["jpg", "jpeg", "png"];
+    const fileNameParts = fileName.split(".");
+    const fileExtension = fileNameParts[fileNameParts.length - 1].toLowerCase();
+    this.isImgFormatValid = false;
+    // if there are at least two pieces to the file name, continue the check
+    if (fileNameParts.length > 1) {
+      // Check if image format is .jpg, jpeg or png - if true set isImgFormatValid to true else false
+      fileAcceptedFormats.indexOf(fileExtension) !== -1
+        ? (this.isImgFormatValid = true)
+        : (this.isImgFormatValid = false);
     }
-
-    const formData = new FormData();
-    const email = JSON.parse(localStorage.getItem("user")).email;
-    formData.append("file", file);
-    formData.append("email", email);
-
-    this.store
-      .bills()
-      .create({
-        data: formData,
-        headers: {
-          noContentType: true,
-        },
-      })
-      .then(({ fileUrl, key }) => {
-        console.log(fileUrl);
-        this.billId = key;
-        this.fileUrl = fileUrl;
-        this.fileName = fileName;
-      })
-      .catch((error) => console.error(error));
+    if (!this.isImgFormatValid) {
+      // if image format is not valid ...
+      fileInput.value = ""; // ... remove file from the input
+      fileInput.classList.add("is-invalid"); // ... add is-invalid class to tell user input is invalid
+      fileInput.classList.remove("blue-border"); // ... remove blue-border class
+      alert(
+        "Le format de votre fichier n'est pas pris en charge." +
+          "\n" +
+          "Seuls les .jpg, .jpeg, .png sont acceptés."
+      ); // Error message for user
+    } else {
+      // if image format is valid ...
+      fileInput.classList.remove("is-invalid"); // ... remove is-invalid class
+      fileInput.classList.add("blue-border"); // ... add blue-border class
+      const formData = new FormData();
+      const email = JSON.parse(localStorage.getItem("user")).email;
+      formData.append("file", file);
+      formData.append("email", email);
+      this.formData = formData; // so it can be used in other methods
+      this.fileName = fileName;
+    }
   };
   handleSubmit = (e) => {
     e.preventDefault();
@@ -82,11 +82,31 @@ export default class NewBill {
       fileName: this.fileName,
       status: "pending",
     };
-    this.updateBill(bill);
-    this.onNavigate(ROUTES_PATH["Bills"]);
+    if (this.isImgFormatValid) {
+      // if image format is valid ...
+      // ... move in handleSubmit to upload image and create new bill only when image format is valid and form is complete
+      this.store
+        .bills()
+        .create({
+          data: this.formData,
+          headers: {
+            noContentType: true,
+          },
+        })
+        .then(({ fileUrl, key }) => {
+          console.log(fileUrl);
+          this.billId = key;
+          this.fileUrl = fileUrl;
+        })
+        .then(() => {
+          this.updateBill(bill);
+        })
+        .catch((error) => console.error(error));
+    }
   };
 
   // not need to cover this function by tests
+  /* istanbul ignore next */
   updateBill = (bill) => {
     if (this.store) {
       this.store
