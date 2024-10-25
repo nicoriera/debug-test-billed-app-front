@@ -1,0 +1,34 @@
+language: node_js
+node_js:
+  - "18"
+
+# Utiliser une image Ubuntu plus récente
+dist: focal
+
+# Cache les dépendances pour accélérer les builds
+cache:
+  directories:
+    - node_modules
+
+# Installation des dépendances
+install:
+  - npm ci
+
+# Script pour exécuter les tests
+script:
+  - npm run test
+
+# Notifications (optionnel)
+notifications:
+  email:
+    recipients:
+      - votre-email@example.com
+    on_success: never
+    on_failure: always
+
+branches:
+  only:
+    - main
+
+after_success:
+  - npm run test-coverage
