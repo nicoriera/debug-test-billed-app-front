@@ -2,6 +2,9 @@ language: node_js
 node_js:
   - "18"
 
+# Utiliser une image Ubuntu plus récente
+dist: focal
+
 # Cache les dépendances pour accélérer les builds
 cache:
   directories:
@@ -27,11 +30,5 @@ branches:
   only:
     - main
 
-before_install:
- - npm update
-
-install:
-- npm install
-
-script:
-- npm run test
+after_success:
+  - npm run test-coverage
